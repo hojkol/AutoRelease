@@ -1,16 +1,13 @@
 import requests
-
-# URL
-# https://daocloud.feishu.cn/wiki/HmLyw7ru0ik1w8k4AkNcD6UhnKf?table=tblxfFwc9An4pWGJ&view=vew0rjziyc
-# https://daocloud.feishu.cn/wiki/UE8Dw2b4Xi665ukTHEtcnVZ5nlc?base_hp_from=larktab&table=tblo4cOyNujdQc2g&view=vew0rjziyc
-
-
 import json
 import csv
 from datetime import datetime, timezone
 import pandas as pd
 from collections import OrderedDict
 
+
+# URL
+# https://daocloud.feishu.cn/wiki/UE8Dw2b4Xi665ukTHEtcnVZ5nlc?base_hp_from=larktab&table=tblo4cOyNujdQc2g&view=vew0rjziyc
 
 
 
@@ -190,7 +187,7 @@ def get_release_Dict(data):
     return result
 
 
-def get_release_info(result):
+def get_release_info(result, filename='rel-notes.md'):
     # result[发布日期][功能模块][版本号][更新类型] = [(一级功能, {二级功能, 基线参数}), ...]
 
     # 日期格式转换函数
@@ -243,7 +240,7 @@ def get_release_info(result):
     md_content = '\n'.join(lines)
 
     # 保存为文件
-    with open('release_notes.md', 'w', encoding='utf-8') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         f.write(md_content)
 
 
