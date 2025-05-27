@@ -4,18 +4,10 @@ import csv
 from datetime import datetime, timezone
 import pandas as pd
 from collections import OrderedDict
+import yaml
+import re
 
 
-# URL
-# https://daocloud.feishu.cn/wiki/UE8Dw2b4Xi665ukTHEtcnVZ5nlc?base_hp_from=larktab&table=tblo4cOyNujdQc2g&view=vew0rjziyc
-
-
-
-APP_ID = "cli_a8a4209df579901c"
-APP_SECRET = "jDngWS3tVibuaxxod5jB0cpUkpd3paOS"
-NODE_TOKEN = "UE8Dw2b4Xi665ukTHEtcnVZ5nlc"  # 表格链接中 /sheets/ 后面的那串字符
-TABLE_ID = "tblo4cOyNujdQc2g"        # 工作表ID，通常为 "Sheet1" 或类似
-VIEW_ID = "vew0rjziyc"
 
 ITEM_HEADER = [
     '功能模块',
@@ -26,7 +18,6 @@ ITEM_HEADER = [
     '二级功能',
     '基线参数'
 ]
-
 
 
 # 1. 获取 tenant_access_token
@@ -46,29 +37,15 @@ def get_node_info(node_token, tenant_access_token):
 
 
 # 3. 读取表格内容
-def get_sheet_content(app_token, table_id, tenant_access_token, page_size=100, page_token=None):
+def get_sheet_content(app_token, table_id, view_id, tenant_access_token, page_size=100, page_token=None):
     url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables/{table_id}/records/search"
     headers = {
         "Authorization": f"Bearer {tenant_access_token}",
         "Content-Type": "application/json"
     }
     payload = {
-        "view_id": VIEW_ID,
+        "view_id": view_id,
         # 可根据需要添加筛选条件 filter、排序等
-    }
-    resp = requests.post(url, headers=headers, data=json.dumps(payload))
-    return resp.json()
-
-
-def get_cotent_according_to_record_id(app_token, tenant_access_token, record_id):
-    url = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{app_token}/tables/{TABLE_ID}/records/search"
-    headers = {
-        "Authorization": f"Bearer {tenant_access_token}",
-        "Content-Type": "application/json"
-    }
-    record_id = [record_id] if isinstance(record_id, str) else record_id
-    payload = {
-        "record_ids": record_id
     }
     resp = requests.post(url, headers=headers, data=json.dumps(payload))
     return resp.json()
@@ -110,10 +87,10 @@ def get_items(data):
         if version:
             filter_items.append(row)
 
-    with open('output1.csv', mode='w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        for i in filter_items:
-            writer.writerow(i)
+    # with open('output1.csv', mode='w', newline='', encoding='utf-8') as f:
+    #     writer = csv.writer(f)
+    #     for i in filter_items:
+    #         writer.writerow(i)
 
 
     return filter_items
@@ -187,12 +164,10 @@ def get_release_Dict(data):
     return result
 
 
-def get_release_info(result, filename='rel-notes.md'):
+def get_release_info(data, filename='rel-notes.md'):
     # result[发布日期][功能模块][版本号][更新类型] = [(一级功能, {二级功能, 基线参数}), ...]
-
-    # 日期格式转换函数
-    def format_date(date_str):
-        return datetime.strptime(date_str, '%Y%m%d').strftime('%Y-%m-%d')
+    items = get_items(data)
+    result = get_release_Dict(items)
 
     # 更新类型对应的 Emoji 和标题
     emoji_map = {
@@ -244,14 +219,60 @@ def get_release_info(result, filename='rel-notes.md'):
         f.write(md_content)
 
 
+
+def parse_feishu_url(url):
+    """
+    Extract NODE_TOKEN, TABLE_ID, VIEW_ID from Feishu Bitable URL.
+    """
+    node_token = None
+    table_id = None
+    view_id = None
+
+    # Extract the node token from the path (after /wiki/)
+    match_node = re.search(r'/wiki/([^/?]+)', url)
+    if match_node:
+        node_token = match_node.group(1)
+
+    # Extract query parameters table and view
+    match_table = re.search(r'table=([^&]+)', url)
+    if match_table:
+        table_id = match_table.group(1)
+
+    match_view = re.search(r'view=([^&]+)', url)
+    if match_view:
+        view_id = match_view.group(1)
+
+    return node_token, table_id, view_id
+
+
+def read_config_from_yaml(yaml_path):
+    """
+    Read config from YAML file, parse URL to get NODE_TOKEN, TABLE_ID, VIEW_ID,
+    and return a config dictionary.
+    """
+    with open(yaml_path, 'r', encoding='utf-8') as f:
+        data = yaml.safe_load(f)
+
+    app_id = data.get('APP_ID')
+    app_secret = data.get('APP_SECRET')
+    url = data.get('URL')
+
+    node_token, table_id, view_id = parse_feishu_url(url) if url else (None, None, None)
+
+    return app_id, app_secret, node_token, table_id, view_id
+
+
+
 if __name__ == "__main__":
 
-    tenant_access_token = get_tenant_access_token(APP_ID, APP_SECRET)
-    node_info = get_node_info(NODE_TOKEN, tenant_access_token)
+    app_path = 'APP.yaml'
+
+    app_id, app_secret, node_token, table_id, view_id = read_config_from_yaml(app_path)
+
+    tenant_access_token = get_tenant_access_token(app_id, app_secret)
+    node_info = get_node_info(node_token, tenant_access_token)
     app_token = node_info["data"]["node"]["obj_token"]
-    ori_data = get_sheet_content(app_token, TABLE_ID, tenant_access_token)
+    ori_data = get_sheet_content(app_token, table_id, view_id, tenant_access_token)
     # print(ori_data)
-    items = get_items(ori_data)
-    release_note = get_release_Dict(items)
-    get_release_info(release_note)
+    get_release_info(ori_data)
 
