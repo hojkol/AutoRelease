@@ -1,0 +1,25 @@
+name: Scheduled Python Script
+
+on:
+  schedule:
+    - cron: "0 1 * * *"  # 每天UTC时间1点运行一次，北京时间9点
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - name: Install dependencies
+        run: |
+          pip install requests pandas
+
+      - name: Run Python script
+        run: python AutoRelease.py
