@@ -16,8 +16,6 @@ jobs:
           UPSTREAM_REPO: ${{ secrets.TARGET_REPO }}
         run: |
           git clone https://x-access-token:${UPSTREAM_PAT}@github.com/${UPSTREAM_REPO}.git upstream_repo
-          cd upstream_repo
-          git checkout main
 
       - name: Compare rel-notes.md files
         id: compare
