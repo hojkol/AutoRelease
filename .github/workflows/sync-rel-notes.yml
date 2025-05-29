@@ -62,11 +62,11 @@ jobs:
           cd fork_repo
           git config user.name "${MY_USER_NAME}"
           git config user.email "${MY_USER_EMAIL}"
-          git checkout -b update-rel-notes || git checkout update-rel-notes
+          # git checkout -b update-rel-notes || git checkout update-rel-notes
           git add docs/zh/docs/rel-notes.md
           if ! git diff --cached --quiet; then
             git commit -m "Update rel-notes.md via automation"
-            git push https://x-access-token:${FORK_PAT}@github.com/${FORK_REPO}.git update-rel-notes --force
+            git push https://x-access-token:${FORK_PAT}@github.com/${FORK_REPO}.git main --force
           else
             echo "No changes to commit"
           fi
@@ -78,7 +78,7 @@ jobs:
           token: ${{ secrets.MY_ACCESS_TOKEN }}
           repository: ${{ secrets.TARGET_REPO }}       # upstream 仓库，格式 owner/repo
           base: main                                   # upstream 目标分支
-          head: ${{ secrets.FORK_REPO }}:update-rel-notes       # fork 仓库的分支，格式 owner:branch
+          head: ${{ secrets.FORK_REPO }}:main       # fork 仓库的分支，格式 owner:branch
           title: "Testing automated update of rel-notes.md, please ignore it."
           body: "This PR updates rel-notes.md automatically every day."
 
