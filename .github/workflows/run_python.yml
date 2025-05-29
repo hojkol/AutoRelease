@@ -52,16 +52,18 @@ jobs:
           git config user.name "${{ secrets.MY_USER_NAME }}"
           git config user.email "${{ secrets.MY_USER_EMAIL }}"
 
-      - name: Commit and push changes if any
+      - name: Commit and push if changed
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          # 假设你对 rel-notes.md 做了修改或生成了新的内容
-          # 这里演示添加文件并提交
           git add rel-notes.md
+          echo "Repository: $REPOSITORY"
+          echo "Ref name: $REF_NAME"
           if ! git diff --cached --quiet; then
             git commit -m "Update rel-notes.md via workflow"
-            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
+            git push https://x-access-token:${GITHUB_TOKEN}@github.com/$REPOSITORY HEAD:$REF_NAME
           else
             echo "No changes to commit"
           fi
