@@ -62,7 +62,6 @@ jobs:
           cd fork_repo
           git config user.name "${MY_USER_NAME}"
           git config user.email "${MY_USER_EMAIL}"
-          # git checkout -b update-rel-notes || git checkout update-rel-notes
           git add docs/zh/docs/rel-notes.md
           if ! git diff --cached --quiet; then
             git commit -m "Update rel-notes.md via automation"
@@ -75,10 +74,10 @@ jobs:
         if: steps.compare.outputs.files_are_same == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.MY_ACCESS_TOKEN }}
+          token: ${{ secrets.MY_ACCESS_TOKEN_FOR_PR }}
           repository: ${{ secrets.TARGET_REPO }}
           base: main
-          head: update-rel-notes
+          head: main
           title: "Testing automated update of rel-notes.md, please ignore it."
           body: "This PR updates rel-notes.md automatically every day."
 
