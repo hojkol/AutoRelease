@@ -51,6 +51,8 @@ jobs:
         run: |
           cp rel-notes.md fork_repo/docs/zh/docs/rel-notes.md
 
+      # ... 前面步骤不变
+
       - name: Commit and push changes to fork
         if: steps.compare.outputs.files_are_same == 'false'
         env:
@@ -70,15 +72,49 @@ jobs:
           else
             echo "No changes to commit"
           fi
-      
-      - name: Create Pull Request to upstream from fork branch
+
+      - name: Create Pull Request via GitHub API
         if: steps.compare.outputs.files_are_same == 'false'
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.MY_ACCESS_TOKEN }}
-          repository: ${{ secrets.TARGET_REPO }}       # upstream 仓库，格式 owner/repo
-          base: main                                   # upstream 目标分支
-          head: ${{ secrets.FORK_REPO }}:update-rel-notes       # fork 仓库的分支，格式 owner:branch
-          title: "Testing automated update of rel-notes.md, please ignore it."
-          body: "This PR updates rel-notes.md automatically every day."
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
+          UPSTREAM_REPO: ${{ secrets.TARGET_REPO }}
+          FORK_REPO: ${{ secrets.FORK_REPO }}
+        run: |
+          UPSTREAM_OWNER=$(echo $UPSTREAM_REPO | cut -d'/' -f1)
+          UPSTREAM_REPO_NAME=$(echo $UPSTREAM_REPO | cut -d'/' -f2)
+          FORK_OWNER=$(echo $FORK_REPO | cut -d'/' -f1)
+          PR_BRANCH="update-rel-notes"
+          PR_TITLE="Testing automated update of rel-notes.md, please ignore it."
+          PR_BODY="This PR updates rel-notes.md automatically every day."
+
+          existing_pr=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$UPSTREAM_OWNER/$UPSTREAM_REPO_NAME/pulls?head=$FORK_OWNER:$PR_BRANCH&state=open" | jq '. | length')
+
+          if [ "$existing_pr" -gt 0 ]; then
+            echo "Pull request already exists. Skipping creation."
+            exit 0
+          fi
+
+          response=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/$UPSTREAM_OWNER/$UPSTREAM_REPO_NAME/pulls \
+            -d @- <<EOF
+          {
+            "title": "$PR_TITLE",
+            "head": "$FORK_OWNER:$PR_BRANCH",
+            "base": "main",
+            "body": "$PR_BODY"
+          }
+          EOF
+          )
+
+          pr_url=$(echo "$response" | jq -r '.html_url')
+          if [ "$pr_url" = "null" ]; then
+            echo "Failed to create pull request:"
+            echo "$response"
+            exit 1
+          else
+            echo "Pull request created: $pr_url"
+          fi
+
 
