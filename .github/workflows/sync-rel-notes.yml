@@ -58,4 +58,5 @@ jobs:
           branch: update-rel-notes  # 自动创建并推送该分支
           title: "Automated update of rel-notes.md"
           body: "This PR updates rel-notes.md automatically every day."
+          create-branch: true
           delete-branch: true  # PR合并后自动删除分支
