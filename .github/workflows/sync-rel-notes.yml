@@ -1,6 +1,7 @@
 name: Sync rel-notes.md to drun-docs
 
 on:
+  workflow_dispatch:  # 支持手动触发
   schedule:
     # 这里使用UTC时间，北京时间10点是UTC 2点
     - cron: '0 2 * * *'  # 每天UTC 2点执行，即北京时间10点
@@ -17,21 +18,28 @@ jobs:
 
       - name: Clone target repo
         env:
-          TARGET_REPO_PAT: ${{ secrets.TARGET_REPO_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_REPO_NAME: ${{ secrets.TARGET_REPO_NAME }}
         run: |
-          git clone https://x-access-token:${TARGET_REPO_PAT}@github.com/d-run/drun-docs.git target_repo
+          git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${TARGET_REPO_NAME}.git target_repo
 
-      - name: Copy rel-notes.md to target repo
+      - name: Compare rel-notes.md files
+        id: compare
         run: |
-          cp rel-notes.md target_repo/docs/zh/docs/rel-notes.md
+          if cmp -s rel-notes.md target_repo/docs/zh/docs/rel-notes.md; then
+            echo "files_are_same=true" >> $GITHUB_OUTPUT
+            cp rel-notes.md target_repo/docs/zh/docs/rel-notes.md
+          else
+            echo "files_are_same=false" >> $GITHUB_OUTPUT
+          fi
+          
 
       - name: Commit and push changes
-        env:
-          TARGET_REPO_PAT: ${{ secrets.TARGET_REPO_PAT }}
+        if: steps.compare.outputs.files_are_same == 'false'
         run: |
           cd target_repo
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
+          git config user.name "${{ secrets.MY_USER_NAME }}"
+          git config user.email "${{ secrets.MY_USER_EMAIL }}"
           git checkout -b update-rel-notes || git checkout update-rel-notes
           git add docs/zh/docs/rel-notes.md
           git diff --quiet && git diff --staged --quiet || (
@@ -40,11 +48,12 @@ jobs:
           )
 
       - name: Create Pull Request
+        if: steps.compare.outputs.files_are_same == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.TARGET_REPO_PAT }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           repository: d-run/drun-docs
           base: main
           head: update-rel-notes
-          title: "Automated update of rel-notes.md"
+          title: "Testing automated update of rel-notes.md, please ignore it."
           body: "This PR updates rel-notes.md automatically every day."
