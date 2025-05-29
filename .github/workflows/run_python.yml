@@ -40,3 +40,28 @@ jobs:
           echo "APP_ID=$APP_ID"
           # 运行Python脚本并传入环境变量
           APP_ID=$APP_ID APP_SECRET=$APP_SECRET URL=$URL python AutoRelease.py
+
+      - name: Print rel-notes.md content
+        run: |
+          echo "===== rel-notes.md 内容开始 ====="
+          cat rel-notes.md
+          echo "===== rel-notes.md 内容结束 ====="
+
+      - name: Configure Git user from secrets
+        run: |
+          git config user.name "${{ secrets.MY_USER_NAME }}"
+          git config user.email "${{ secrets.MY_USER_EMAIL }}"
+
+      - name: Commit and push changes if any
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_ACCESS_TOKEN }}
+        run: |
+          # 假设你对 rel-notes.md 做了修改或生成了新的内容
+          # 这里演示添加文件并提交
+          git add rel-notes.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Update rel-notes.md via workflow"
+            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} HEAD:${{ github.ref_name }}
+          else
+            echo "No changes to commit"
+          fi
