@@ -14,7 +14,8 @@ jobs:
       - name: Checkout source repo
         uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          persist-credentials: false
+          fetch-depth: 0
 
       - name: Checkout fork repo
         env:
