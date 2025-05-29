@@ -20,7 +20,7 @@ jobs:
       - name: Debug current directory and files
         run: |
           pwd
-          ls -l
+          ls -la
           ls -l rel-notes.md || echo "rel-notes.md not found"
 
 
