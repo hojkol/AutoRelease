@@ -1,29 +1,46 @@
-name: Sync rel-notes.md to upstream
+name: Sync rel-notes.md to drun-docs
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # 支持手动触发
   schedule:
-    - cron: '0 2 * * *'  # UTC时间每天2点执行（北京时间10点）
+    # 这里使用UTC时间，北京时间10点是UTC 2点
+    - cron: '0 2 * * *'  # 每天UTC 2点执行，即北京时间10点
 
 jobs:
   sync-rel-notes:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
-    
-      - name: Checkout upstream repo
+      - name: Checkout source repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Checkout fork repo
         env:
-          UPSTREAM_PAT: ${{ secrets.MY_ACCESS_TOKEN }}
+          FORK_PAT: ${{ secrets.MY_ACCESS_TOKEN }}  # 你的fork仓库PAT，需写权限
+          FORK_REPO: ${{ secrets.FORK_REPO }}
           UPSTREAM_REPO: ${{ secrets.TARGET_REPO }}
         run: |
-          git clone https://x-access-token:${UPSTREAM_PAT}@github.com/${UPSTREAM_REPO}.git upstream_repo
+          git clone https://x-access-token:${FORK_PAT}@github.com/${FORK_REPO}.git fork_repo
+          cd fork_repo
+          git remote add upstream https://github.com/${UPSTREAM_REPO}.git
+          git fetch upstream
+          git reset --hard upstream/main
+          git push origin main --force
+
+      - name: Clone updated fork repo
+        env:
+          FORK_PAT: ${{ secrets.MY_ACCESS_TOKEN }}
+          FORK_REPO: ${{ secrets.FORK_REPO }}
+        run: |
+          rm -rf fork_repo
+          git clone https://x-access-token:${FORK_PAT}@github.com/${FORK_REPO}.git fork_repo
 
       - name: Compare rel-notes.md files
         id: compare
         run: |
-          if cmp -s rel-notes.md upstream_repo/docs/zh/docs/rel-notes.md; then
+          if cmp -s rel-notes.md fork_repo/docs/zh/docs/rel-notes.md; then
             echo "files_are_same=true" >> $GITHUB_OUTPUT
           else
             echo "files_are_same=false" >> $GITHUB_OUTPUT
@@ -32,31 +49,36 @@ jobs:
       - name: Copy rel-notes.md if changed
         if: steps.compare.outputs.files_are_same == 'false'
         run: |
-          cp rel-notes.md upstream_repo/docs/zh/docs/rel-notes.md
+          cp rel-notes.md fork_repo/docs/zh/docs/rel-notes.md
 
-      - name: Commit changes locally
+      - name: Commit and push changes to fork
         if: steps.compare.outputs.files_are_same == 'false'
         env:
+          FORK_PAT: ${{ secrets.MY_ACCESS_TOKEN }}
+          FORK_REPO: ${{ secrets.FORK_REPO }}
           MY_USER_NAME: ${{ secrets.MY_USER_NAME }}
           MY_USER_EMAIL: ${{ secrets.MY_USER_EMAIL }}
         run: |
-          cd upstream_repo
+          cd fork_repo
           git config user.name "${MY_USER_NAME}"
           git config user.email "${MY_USER_EMAIL}"
-          # git checkout -b update-rel-notes
+          git checkout -b update-rel-notes || git checkout update-rel-notes
           git add docs/zh/docs/rel-notes.md
-          git commit -m "Update rel-notes.md via automation"
-
-      - name: Create Pull Request
+          if ! git diff --cached --quiet; then
+            git commit -m "Update rel-notes.md via automation"
+            git push https://x-access-token:${FORK_PAT}@github.com/${FORK_REPO}.git update-rel-notes --force
+          else
+            echo "No changes to commit"
+          fi
+      
+      - name: Create Pull Request to upstream from fork branch
         if: steps.compare.outputs.files_are_same == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.MY_ACCESS_TOKEN }}
-          path: upstream_repo  # 关键配置：指定包含更改的目录
-          repository: ${{ secrets.TARGET_REPO }}
-          base: main
-          branch: update-rel-notes  # 自动创建并推送该分支
-          title: "Testing Automated update of rel-notes.md"
+          repository: ${{ secrets.TARGET_REPO }}       # upstream 仓库，格式 owner/repo
+          base: main                                   # upstream 目标分支
+          head: ${{ secrets.FORK_REPO }}:update-rel-notes       # fork 仓库的分支，格式 owner:branch
+          title: "Testing automated update of rel-notes.md, please ignore it."
           body: "This PR updates rel-notes.md automatically every day."
-          delete-branch: true  # PR合并后自动删除分支
-          create-branch: true
+
