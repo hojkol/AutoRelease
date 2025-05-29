@@ -43,7 +43,7 @@ jobs:
           cd upstream_repo
           git config user.name "${MY_USER_NAME}"
           git config user.email "${MY_USER_EMAIL}"
-          git checkout -b update-rel-notes
+          # git checkout -b update-rel-notes
           git add docs/zh/docs/rel-notes.md
           git commit -m "Update rel-notes.md via automation"
 
@@ -56,7 +56,7 @@ jobs:
           repository: ${{ secrets.TARGET_REPO }}
           base: main
           branch: update-rel-notes  # 自动创建并推送该分支
-          title: "Automated update of rel-notes.md"
+          title: "Testing Automated update of rel-notes.md"
           body: "This PR updates rel-notes.md automatically every day."
-          create-branch: true
           delete-branch: true  # PR合并后自动删除分支
+          create-branch: true
