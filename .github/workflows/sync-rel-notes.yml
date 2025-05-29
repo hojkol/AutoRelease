@@ -17,6 +17,13 @@ jobs:
         run: |
           git clone https://x-access-token:${UPSTREAM_PAT}@github.com/${UPSTREAM_REPO}.git upstream_repo
 
+      - name: Debug current directory and files
+        run: |
+          pwd
+          ls -l
+          ls -l rel-notes.md || echo "rel-notes.md not found"
+
+
       - name: Compare rel-notes.md files
         id: compare
         run: |
