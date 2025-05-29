@@ -16,10 +16,9 @@ jobs:
         with:
           fetch-depth: 1
 
-
       - name: Checkout fork repo
         env:
-          FORK_PAT: ${{ secrets.FORK_PAT }}  # 你的fork仓库PAT，需写权限
+          FORK_PAT: ${{ secrets.GITHUB_TOKEN }}  # 你的fork仓库PAT，需写权限
           FORK_REPO: ${{ secrets.FORK_REPO }}
           UPSTREAM_REPO: ${{ secrets.TARGET_REPO }}
         run: |
@@ -27,7 +26,6 @@ jobs:
           cd fork_repo
           git remote add upstream https://github.com/${UPSTREAM_REPO}.git
           git fetch upstream
-          git checkout main
           git reset --hard upstream/main
           git push origin main --force
 
@@ -57,6 +55,7 @@ jobs:
         if: steps.compare.outputs.files_are_same == 'false'
         env:
           FORK_PAT: ${{ secrets.GITHUB_TOKEN }}
+          FORK_REPO: ${{ secrets.FORK_REPO }}
           MY_USER_NAME: ${{ secrets.MY_USER_NAME }}
           MY_USER_EMAIL: ${{ secrets.MY_USER_EMAIL }}
         run: |
@@ -77,7 +76,7 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          repository: ${{ env.UPSTREAM_REPO }}
+          repository: ${{ secrets.TARGET_REPO }}
           base: main
           head: update-rel-notes
           title: "Testing automated update of rel-notes.md, please ignore it."
