@@ -32,36 +32,30 @@ jobs:
       - name: Copy rel-notes.md if changed
         if: steps.compare.outputs.files_are_same == 'false'
         run: |
-          ls
           cp rel-notes.md upstream_repo/docs/zh/docs/rel-notes.md
 
-      - name: Commit and push changes to upstream branch
+      - name: Commit changes locally
         if: steps.compare.outputs.files_are_same == 'false'
         env:
-          UPSTREAM_PAT: ${{ secrets.MY_ACCESS_TOKEN }}
-          UPSTREAM_REPO: ${{ secrets.TARGET_REPO }}
           MY_USER_NAME: ${{ secrets.MY_USER_NAME }}
           MY_USER_EMAIL: ${{ secrets.MY_USER_EMAIL }}
         run: |
           cd upstream_repo
           git config user.name "${MY_USER_NAME}"
           git config user.email "${MY_USER_EMAIL}"
-          git checkout -b update-rel-notes || git checkout update-rel-notes
+          git checkout -b update-rel-notes
           git add docs/zh/docs/rel-notes.md
-          if ! git diff --cached --quiet; then
-            git commit -m "Update rel-notes.md via automation"
-            git push https://x-access-token:${UPSTREAM_PAT}@github.com/${UPSTREAM_REPO}.git update-rel-notes --force
-          else
-            echo "No changes to commit"
-          fi
+          git commit -m "Update rel-notes.md via automation"
 
-      - name: Create Pull Request to upstream
+      - name: Create Pull Request
         if: steps.compare.outputs.files_are_same == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.MY_ACCESS_TOKEN }}
+          path: upstream_repo  # 关键配置：指定包含更改的目录
           repository: ${{ secrets.TARGET_REPO }}
           base: main
-          head: update-rel-notes
+          branch: update-rel-notes  # 自动创建并推送该分支
           title: "Automated update of rel-notes.md"
           body: "This PR updates rel-notes.md automatically every day."
+          delete-branch: true  # PR合并后自动删除分支
