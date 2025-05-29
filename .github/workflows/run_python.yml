@@ -1,6 +1,7 @@
 name: Scheduled Python Script
 
 on:
+  workflow_dispatch:  # 支持手动触发
   schedule:
     - cron: "0 1 * * *"  # 每天UTC时间1点运行一次，北京时间9点
 
@@ -15,11 +16,27 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.9
 
       - name: Install dependencies
         run: |
-          pip install requests pandas
+          pip install -r requirements.txt
 
-      - name: Run Python script
-        run: python AutoRelease.py
+      # - name: Run Python script
+      #   env:
+      #     APP_ID: ${{ secrets.APP_ID }}
+      #     APP_SECRET: ${{ secrets.APP_SECRET }}
+      #     URL: ${{ secrets.URL }}
+      #   run: python AutoRelease.py
+
+      - name: Parse secrets and run script
+        env:
+          FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
+        run: |
+          echo "$FEISHU_SECRET" > config.json
+          APP_ID=$(jq -r '.APP_ID' config.json)
+          APP_SECRET=$(jq -r '.APP_SECRET' config.json)
+          URL=$(jq -r '.URL' config.json)
+          echo "APP_ID=$APP_ID"
+          # 运行Python脚本并传入环境变量
+          APP_ID=$APP_ID APP_SECRET=$APP_SECRET URL=$URL python AutoRelease.py
