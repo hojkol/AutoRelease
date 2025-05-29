@@ -18,7 +18,7 @@ jobs:
 
       - name: Checkout fork repo
         env:
-          FORK_PAT: ${{ secrets.GITHUB_TOKEN }}  # 你的fork仓库PAT，需写权限
+          FORK_PAT: ${{ secrets.MY_ACCESS_TOKEN }}  # 你的fork仓库PAT，需写权限
           FORK_REPO: ${{ secrets.FORK_REPO }}
           UPSTREAM_REPO: ${{ secrets.TARGET_REPO }}
         run: |
@@ -31,7 +31,7 @@ jobs:
 
       - name: Clone updated fork repo
         env:
-          FORK_PAT: ${{ secrets.GITHUB_TOKEN }}
+          FORK_PAT: ${{ secrets.MY_ACCESS_TOKEN }}
           FORK_REPO: ${{ secrets.FORK_REPO }}
         run: |
           rm -rf fork_repo
@@ -54,7 +54,7 @@ jobs:
       - name: Commit and push changes to fork
         if: steps.compare.outputs.files_are_same == 'false'
         env:
-          FORK_PAT: ${{ secrets.GITHUB_TOKEN }}
+          FORK_PAT: ${{ secrets.MY_ACCESS_TOKEN }}
           FORK_REPO: ${{ secrets.FORK_REPO }}
           MY_USER_NAME: ${{ secrets.MY_USER_NAME }}
           MY_USER_EMAIL: ${{ secrets.MY_USER_EMAIL }}
@@ -75,51 +75,10 @@ jobs:
         if: steps.compare.outputs.files_are_same == 'false'
         uses: peter-evans/create-pull-request@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.MY_ACCESS_TOKEN }}
           repository: ${{ secrets.TARGET_REPO }}
           base: main
           head: update-rel-notes
           title: "Testing automated update of rel-notes.md, please ignore it."
           body: "This PR updates rel-notes.md automatically every day."
-          
-      # - name: Clone target repo
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     TARGET_REPO_NAME: ${{ secrets.TARGET_REPO_NAME }}
-      #   run: |
-      #     git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${TARGET_REPO_NAME}.git target_repo
 
-      # - name: Compare rel-notes.md files
-      #   id: compare
-      #   run: |
-      #     if cmp -s rel-notes.md target_repo/docs/zh/docs/rel-notes.md; then
-      #       echo "files_are_same=true" >> $GITHUB_OUTPUT
-      #       cp rel-notes.md target_repo/docs/zh/docs/rel-notes.md
-      #     else
-      #       echo "files_are_same=false" >> $GITHUB_OUTPUT
-      #     fi
-          
-
-      # - name: Commit and push changes
-      #   if: steps.compare.outputs.files_are_same == 'false'
-      #   run: |
-      #     cd target_repo
-      #     git config user.name "${{ secrets.MY_USER_NAME }}"
-      #     git config user.email "${{ secrets.MY_USER_EMAIL }}"
-      #     git checkout -b update-rel-notes || git checkout update-rel-notes
-      #     git add docs/zh/docs/rel-notes.md
-      #     git diff --quiet && git diff --staged --quiet || (
-      #       git commit -m "Update rel-notes.md via automation"
-      #       git push origin update-rel-notes --force
-      #     )
-
-      # - name: Create Pull Request
-      #   if: steps.compare.outputs.files_are_same == 'false'
-      #   uses: peter-evans/create-pull-request@v5
-      #   with:
-      #     token: ${{ secrets.GITHUB_TOKEN }}
-      #     repository: d-run/drun-docs
-      #     base: main
-      #     head: update-rel-notes
-      #     title: "Testing automated update of rel-notes.md, please ignore it."
-      #     body: "This PR updates rel-notes.md automatically every day."
