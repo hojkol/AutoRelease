@@ -17,13 +17,6 @@ jobs:
         run: |
           git clone https://x-access-token:${UPSTREAM_PAT}@github.com/${UPSTREAM_REPO}.git upstream_repo
 
-      - name: Debug current directory and files
-        run: |
-          pwd
-          ls -la
-          ls -l rel-notes.md || echo "rel-notes.md not found"
-
-
       - name: Compare rel-notes.md files
         id: compare
         run: |
@@ -36,6 +29,7 @@ jobs:
       - name: Copy rel-notes.md if changed
         if: steps.compare.outputs.files_are_same == 'false'
         run: |
+          ls
           cp rel-notes.md upstream_repo/docs/zh/docs/rel-notes.md
 
       - name: Commit and push changes to upstream branch
