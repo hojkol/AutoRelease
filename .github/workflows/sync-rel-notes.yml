@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+    
       - name: Checkout upstream repo
         env:
           UPSTREAM_PAT: ${{ secrets.MY_ACCESS_TOKEN }}
