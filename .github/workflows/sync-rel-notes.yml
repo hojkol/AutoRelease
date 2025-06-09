@@ -2,9 +2,9 @@ name: Sync rel-notes.md to drun-docs
 
 on:
   workflow_dispatch:  # 支持手动触发
-  schedule:
+  # schedule:
     # 这里使用UTC时间，北京时间10点是UTC 2点
-    - cron: '0 2 * * *'  # 每天UTC 2点执行，即北京时间10点
+    # - cron: '0 2 * * *'  # 每天UTC 2点执行，即北京时间10点
 
 jobs:
   sync-rel-notes:
